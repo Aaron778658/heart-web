@@ -1,0 +1,61 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+# 定义爱心判断函数
+def is_inside_heart(x, y, z, scale=15, thickness=5):
+    x_scaled = x / scale
+    y_scaled = y / scale
+    z_scaled = z / thickness
+    t = np.arctan2(y_scaled, x_scaled) if x_scaled != 0 or y_scaled != 0 else 0
+    r = np.sqrt(x_scaled**2 + y_scaled**2)
+    # 爱心的极坐标方程
+    r_heart = 16 * np.sin(t)**3 + 13 * np.cos(t) - 5 * np.cos(2*t) - 2 * np.cos(3*t) - np.cos(4*t)
+    return (r_heart - 0.5 <= r) & (r <= r_heart + 0.5) & (np.abs(z_scaled) <= 0.5)
+
+# 生成网格点
+size = 30
+thickness = 5
+x = np.linspace(-size, size, 2 * size + 1)
+y = np.linspace(-size, size, 2 * size + 1)
+z = np.linspace(-thickness / 2, thickness / 2, thickness + 1)
+X, Y, Z = np.meshgrid(x, y, z)
+
+# 标记爱心内部的点
+heart = np.zeros_like(X, dtype=bool)
+for i in range(X.shape[0]):
+    for j in range(X.shape[1]):
+        for k in range(X.shape[2]):
+            if is_inside_heart(X[i, j, k], Y[i, j, k], Z[i, j, k]):
+                heart[i, j, k] = True
+
+# 定义渐变颜色（粉、紫、红系列）
+colors = np.array([
+    (1.0, 0.6, 0.8, 1),  # 浅粉
+    (0.9, 0.3, 0.7, 1),  # 粉红
+    (0.8, 0.1, 0.6, 1),  # 玫红
+    (0.7, 0.0, 0.5, 1),  # 紫玫红
+    (0.6, 0.0, 0.4, 1)   # 深紫
+])
+color_indices = np.zeros_like(heart, dtype=int)
+for i in range(heart.shape[0]):
+    for j in range(heart.shape[1]):
+        for k in range(heart.shape[2]):
+            if heart[i, j, k]:
+                # 根据z坐标确定颜色索引，实现上下渐变
+                z_norm = (Z[i, j, k] + thickness / 2) / thickness
+                color_indices[i, j, k] = min(int(z_norm * len(colors)), len(colors) - 1)
+
+# 提取爱心的坐标和颜色
+x_heart = X[heart]
+y_heart = Y[heart]
+z_heart = Z[heart]
+c_heart = colors[color_indices[heart]]
+
+# 绘制3D爱心
+fig = plt.figure(figsize=(8, 8))
+ax = fig.add_subplot(111, projection='3d')
+ax.scatter(x_heart, y_heart, z_heart, c=c_heart, s=10, alpha=0.8)
+ax.set_axis_off()
+ax.set_title("3D 爱心代码")
+plt.show()
